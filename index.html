@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тестирование — или как AI помог мне делать то, чего я не умела</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1a1a;
+  --grid: rgba(255,255,255,0.045);
+  --accent: #b388ff;
+  --text: #ffffff;
+  --dim: rgba(255,255,255,0.5);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  cursor: none;
+  user-select: none;
+}
+
+/* ── Grid background ── */
+.grid {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+/* ── Custom cursor ── */
+#cursor {
+  position: fixed;
+  width: 8px; height: 8px;
+  background: white;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: difference;
+  transform: translate(-50%, -50%);
+  transition: transform 0.08s;
+}
+body:active #cursor { transform: translate(-50%,-50%) scale(1.8); }
+
+/* ── Coordinates decoration ── */
+.coords {
+  position: absolute;
+  font-family: 'Inter', monospace;
+  font-size: 9px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.05em;
+}
+.coords::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: -26px;
+  left: -26px;
+  background:
+    linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.4)) center / 1px 100% no-repeat,
+    linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.4)) center / 100% 1px no-repeat;
+}
+
+/* ── Slides ── */
+#deck { position: fixed; inset: 0; z-index: 1; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: 60px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s cubic-bezier(.4,0,.2,1),
+              transform 0.55s cubic-bezier(.4,0,.2,1);
+  transform: translateY(24px);
+}
+.slide.active {
+  opacity: 1; pointer-events: all;
+  transform: translateY(0);
+}
+.slide.exit {
+  opacity: 0;
+  transform: translateY(-24px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+/* ── Reveal animation for step items ── */
+[data-step] {
+  opacity: 0;
+  transform: translateY(20px) scale(0.96);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+[data-step].show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* ── Nav & progress ── */
+#nav {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 7px; z-index: 100;
+}
+.dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  transition: background 0.3s, transform 0.3s;
+}
+.dot.on { background: white; transform: scale(1.3); }
+
+#hint {
+  position: fixed; bottom: 22px; right: 44px;
+  font-size: 10px; color: rgba(255,255,255,0.2);
+  z-index: 100; letter-spacing: 0.08em;
+}
+
+/* ══════════════════════════════
+   SLIDE 1 — Title
+══════════════════════════════ */
+#s1 .main-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(42px, 7.5vw, 96px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin-bottom: 36px;
+  line-height: 1.1;
+}
+#s1 .subtitle {
+  font-size: clamp(15px, 2.2vw, 24px);
+  color: var(--dim);
+  text-align: center;
+  font-weight: 300;
+  max-width: 640px;
+  line-height: 1.6;
+  opacity: 0;
+}
+#s1 .subtitle.subtitle-play {
+  animation: subtitleIn 1.4s ease forwards;
+  animation-delay: 1.2s;
+}
+@keyframes subtitleIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#s1 .coords { bottom: 32%; left: 13%; }
+
+/* ══════════════════════════════
+   SLIDE 2 — Career icons
+══════════════════════════════ */
+#s2 .slide-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(22px, 4vw, 54px);
+  font-weight: 700;
+  position: absolute; top: 56px; left: 64px;
+}
+#s2 .coords { top: 56px; right: 100px; }
+#s2 .icons-row {
+  display: flex; gap: 140px; align-items: flex-start;
+  margin-top: 20px;
+}
+.icon-card {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 20px;
+}
+.icon-3d {
+  width: 140px; height: 140px;
+  display: flex; align-items: center; justify-content: center;
+}
+.icon-3d img {
+  width: 130px; height: 130px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+  transition: transform 0.3s ease;
+}
+.icon-3d img:hover { transform: translateY(-6px) scale(1.05); }
+.icon-label { font-size: 20px; color: rgba(255,255,255,0.88); }
+
+/* ══════════════════════════════
+   SLIDE 3 — 3D Maps (Mapbox)
+══════════════════════════════ */
+.pill {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 100px;
+  padding: 10px 44px;
+  font-size: clamp(16px, 2.2vw, 26px);
+  font-weight: 500;
+  position: absolute; top: 32px; left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 2;
+}
+.map-box {
+  width: 88%; height: 76%;
+  border-radius: 22px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 30px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+#lv-map { width: 100%; height: 100%; }
+
+/* Map overlay controls */
+.map-controls {
+  position: absolute;
+  top: 14px; right: 14px;
+  display: flex; gap: 10px;
+  z-index: 10;
+}
+.map-btn {
+  background: rgba(10,10,10,0.75);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 7px 14px;
+  border-radius: 50px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background 0.2s;
+  text-decoration: none;
+  display: flex; align-items: center; gap: 6px;
+}
+.map-btn:hover { background: rgba(255,255,255,0.15); }
+
+/* Light preset indicator */
+.light-indicator {
+  position: absolute;
+  bottom: 14px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50px;
+  padding: 5px 16px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+
+/* Mapbox attribution small */
+.mapboxgl-ctrl-attrib { font-size: 8px !important; }
+.mapboxgl-ctrl-logo { display: none !important; }
+
+/* ══════════════════════════════
+   SLIDE 4 — Bug mascot
+══════════════════════════════ */
+#s4 { padding: 0; }
+#s4 .half-grid { display: grid; grid-template-columns: 1fr 1fr; width: 100%; height: 100%; }
+#s4 .bug-side { position: relative; }
+
+/* Жук — абсолютно позиционирован внутри левой половины */
+#s4 .bug-emoji {
+  position: absolute;
+  font-size: 100px;
+  line-height: 1;
+  transition: top 1s cubic-bezier(.4,0,.2,1), left 1s cubic-bezier(.4,0,.2,1);
+  filter: drop-shadow(0 10px 30px rgba(255,80,80,0.3));
+  animation: float 3.2s ease-in-out infinite;
+}
+
+/* 3 позиции жука (top/left в % от левой половины) */
+#s4 .bug-emoji.pos-0 { top: 55%; left: 35%; }
+#s4 .bug-emoji.pos-1 { top: 20%; left: 20%; }
+#s4 .bug-emoji.pos-2 { top: 65%; left: 55%; }
+
+@keyframes float {
+  0%,100% { transform: translateY(0) rotate(-6deg); }
+  50%      { transform: translateY(-14px) rotate(6deg); }
+}
+
+#s4 .map-side {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 40px 40px 0;
+}
+
+/* Правый фрейм с кликом */
+.bug-frame {
+  width: 100%; height: 82%;
+  border-radius: 20px; overflow: hidden; position: relative;
+  border: 1px solid rgba(255,255,255,0.12);
+  cursor: pointer;
+}
+.bug-frame img.bug-img {
+  width: 100%; height: 100%; object-fit: cover;
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.bug-frame img.bug-img.active { opacity: 1; }
+
+/* Dots внутри фрейма */
+.bug-dots {
+  position: absolute; bottom: 14px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 8px; z-index: 5;
+}
+.bug-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  transition: background 0.3s;
+}
+.bug-dot.on { background: white; }
+
+/* Подсказка "нажми" */
+.bug-hint {
+  position: absolute; top: 14px; right: 14px;
+  font-size: 10px; color: rgba(255,255,255,0.35);
+  z-index: 5; pointer-events: none;
+}
+
+.city-card {
+  width: 100%; height: 82%;
+  border-radius: 20px; overflow: hidden; position: relative;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.city-bg-warm {
+  width: 100%; height: 100%;
+  background: linear-gradient(140deg, #e8d5bc 0%, #ceb895 40%, #b89e78 70%);
+  position: relative;
+}
+.city-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.07) 1px, transparent 1px); background-size: 28px 28px; }
+.pin { position: absolute; background: rgba(80,160,255,0.9); border-radius: 50px; padding: 3px 10px; font-size: 11px; color: #000; font-weight: 500; }
+.pin-orange { background: rgba(255,160,50,0.9); }
+
+/* ══════════════════════════════
+   SLIDE 5 — Testing types
+══════════════════════════════ */
+#s5 { padding-top: 80px; }
+#s5 .layout { display: grid; grid-template-columns: 1fr 1fr; width: 90%; gap: 28px; height: 65%; margin-top: 20px; }
+.test-img-box {
+  border-radius: 20px; overflow: hidden; position: relative;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.test-img-box img {
+  width: 100%; height: 100%; object-fit: cover;
+  position: absolute; inset: 0;
+  opacity: 0; transition: opacity 0.4s ease;
+}
+.test-img-box img.active { opacity: 1; }
+.types-col { display: flex; flex-direction: column; gap: 18px; }
+.type-card {
+  flex: 1; border-radius: 16px; border: 1px solid rgba(255,255,255,0.12);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer; transition: background 0.35s, border-color 0.35s;
+}
+.type-card.dark { background: rgba(15,15,15,0.85); border-color: rgba(255,255,255,0.07); }
+.type-card .ico { font-size: 38px; }
+.type-card .lbl { font-size: 20px; font-weight: 500; }
+
+/* ══════════════════════════════
+   SLIDE 6 — Paris map
+══════════════════════════════ */
+#s6 { padding: 24px; }
+.paris-card {
+  width: 100%; height: 100%;
+  border-radius: 22px; overflow: hidden; position: relative;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.paris-bg {
+  width: 100%; height: 100%;
+  background: linear-gradient(150deg, #b8d0ee 0%, #8ab0d8 40%, #6090c0 70%);
+  position: relative;
+}
+.paris-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px); background-size: 32px 32px; }
+.paris-pin { position: absolute; font-size: 11px; font-weight: 600; }
+.cathedral { position: absolute; bottom: 20%; right: 18%; display: flex; gap: 4px; align-items: flex-end; }
+.tower { background: rgba(220,225,240,0.65); border: 1px solid rgba(220,225,240,0.85); border-radius: 1px; }
+.river { position: absolute; top: 30%; left: 0; right: 0; height: 40px; background: rgba(100,160,230,0.5); transform: skewY(-2deg); }
+
+/* ══════════════════════════════
+   SLIDE 7 — Custom Mapbox animation
+══════════════════════════════ */
+.big { font-family: 'Orbitron', sans-serif; font-size: clamp(42px, 7.5vw, 96px); font-weight: 700; letter-spacing: -0.02em; }
+#s6 .coords { right: 22%; top: 43%; }
+#s7 { padding: 20px; }
+#s7-map { width: 100%; height: 100%; }
+
+/* ══════════════════════════════
+   SLIDE 8 — AI Tools
+══════════════════════════════ */
+#s8 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; width: 80%; }
+.tool-list { display: flex; flex-direction: column; gap: 24px; }
+.tool-item {
+  display: flex; align-items: center; gap: 22px;
+  font-size: clamp(18px, 2.4vw, 32px); font-weight: 400;
+}
+.ai-ico {
+  width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.ai-ico img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: 14px;
+}
+.ai-ico.double {
+  width: 116px;
+  gap: 8px;
+}
+.ai-ico.double img {
+  width: 54px; height: 54px;
+  object-fit: contain;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════
+   SLIDE 9 — Code screenshot
+══════════════════════════════ */
+#s9 { padding: 36px; }
+.code-window {
+  width: 100%; height: 100%;
+  background: #1e1e2e; border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  display: grid; grid-template-columns: 190px 1fr 310px;
+  overflow: hidden; font-family: 'Courier New', monospace; font-size: 12px;
+}
+.c-sidebar {
+  background: #161624; border-right: 1px solid rgba(255,255,255,0.05);
+  padding: 14px 10px; color: rgba(255,255,255,0.38); font-size: 10.5px; line-height: 2;
+}
+.c-sidebar b { color: rgba(255,255,255,0.75); }
+.c-main { padding: 14px 16px; color: #cdd6f4; line-height: 1.75; overflow: hidden; }
+.kw { color: #cba6f7; } .fn { color: #89b4fa; } .st { color: #a6e3a1; } .cm { color: #585b70; } .nm { color: #fab387; }
+.c-chat {
+  background: #18182a; border-left: 1px solid rgba(255,255,255,0.05);
+  padding: 14px; font-family: 'Inter', sans-serif; font-size: 11px; color: rgba(255,255,255,0.65); line-height: 1.7;
+  overflow: hidden;
+}
+.c-chat-q { color: rgba(255,255,255,0.35); font-size: 10px; margin-bottom: 10px; }
+.c-chat-title { color: white; font-weight: 600; font-size: 12px; margin-bottom: 8px; }
+
+/* ══════════════════════════════
+   SLIDE 10 — Advice
+══════════════════════════════ */
+#s10 { align-items: flex-start; }
+.advice-wrap { display: flex; flex-direction: column; gap: 32px; max-width: 720px; width: 100%; }
+.advice-h { font-size: clamp(16px, 1.8vw, 22px); font-weight: 500; margin-bottom: 5px; }
+.advice-p { font-size: clamp(12px, 1.3vw, 16px); color: var(--dim); font-weight: 300; line-height: 1.55; }
+
+/* ══════════════════════════════
+   SLIDE 11 — Thank you
+══════════════════════════════ */
+#s11::before {
+  content: ''; position: absolute; inset: 22px;
+  border-radius: 22px; border: 1px solid rgba(255,255,255,0.1);
+  pointer-events: none;
+}
+#s11 .thanks { font-family: 'Orbitron', sans-serif; font-size: clamp(24px, 3.8vw, 50px); margin-bottom: 52px; text-align: center; }
+.qr-card {
+  width: 190px; background: white; border-radius: 18px;
+  padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.qr-img {
+  width: 155px; height: 155px;
+  background-image:
+    repeating-conic-gradient(#1a5f1a 0% 25%, white 0% 50%) 0 0 / 10px 10px;
+  border-radius: 4px; position: relative;
+}
+/* Corner squares */
+.qr-img::before, .qr-img::after {
+  content: ''; position: absolute;
+  width: 30px; height: 30px;
+  border: 5px solid #1a5f1a; border-radius: 3px;
+}
+.qr-img::before { top: 4px; left: 4px; }
+.qr-img::after  { top: 4px; right: 4px; }
+.qr-lbl { color: #222; font-size: 13px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div class="grid"></div>
+
+<div id="deck">
+
+  <!-- ─── SLIDE 1: Title ─── -->
+  <div class="slide active" id="s1">
+    <div class="coords" style="bottom:33%;left:12%;">55.1927° N<br>30.2064° E</div>
+    <h1 class="main-title">Тестирование</h1>
+    <p class="subtitle">или как AI помог мне делать то, чего я не умела</p>
+  </div>
+
+  <!-- ─── SLIDE 2: Career path icons ─── -->
+  <div class="slide" id="s2">
+    <div class="coords" style="top:58px;right:100px;">55.1927° N<br>30.2064° E</div>
+    <div class="icons-row">
+      <div class="icon-card" data-step="0">
+        <div class="icon-3d"><img src="icons/globe.png" alt="Геофак"></div>
+        <span class="icon-label">Геофак</span>
+      </div>
+      <div class="icon-card" data-step="1">
+        <div class="icon-3d"><img src="icons/nuclear.png" alt="Инженер-химик"></div>
+        <span class="icon-label">Инженер-химик</span>
+      </div>
+      <div class="icon-card" data-step="2">
+        <div class="icon-3d"><img src="icons/code.png" alt="Тестирование"></div>
+        <span class="icon-label">Тестирование</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 3: 3D Maps (Mapbox) ─── -->
+  <div class="slide" id="s3">
+    <div class="pill">3d карты</div>
+    <div class="map-box">
+      <div id="lv-map"></div>
+      <div class="map-controls">
+        <a class="map-btn" id="open-map-link"
+           href="https://labs.mapbox.com/standard-style/?lightPreset=day#15.28/52.519664/13.407936/30.1/70"
+           target="_blank">↗ Открыть карту</a>
+      </div>
+      <div class="light-indicator" id="light-label">☀️ day</div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 4: Bug mascot + bug images ─── -->
+  <div class="slide" id="s4">
+    <div class="half-grid">
+      <div class="bug-side">
+        <div class="bug-emoji pos-0" id="bug-mascot">🪲</div>
+      </div>
+      <div class="map-side">
+        <div class="bug-frame" onclick="nextBugImage(event)">
+          <img class="bug-img active" src="images/bug1.png" alt="bug1">
+          <img class="bug-img"        src="images/bug2.png" alt="bug2">
+          <img class="bug-img"        src="images/bug3.png" alt="bug3">
+          <div class="bug-hint">нажми для переключения</div>
+          <div class="bug-dots">
+            <div class="bug-dot on"></div>
+            <div class="bug-dot"></div>
+            <div class="bug-dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 5: Testing types ─── -->
+  <div class="slide" id="s5">
+    <div class="pill">Тестирование</div>
+    <div class="layout">
+      <div class="test-img-box">
+        <img id="test-img-manual"    class="active" src="images/manual_test.png"    alt="manual">
+        <img id="test-img-automated"               src="images/automated_tests.png" alt="automated">
+      </div>
+      <div class="types-col">
+        <div class="type-card" id="card-manual" onclick="setTestType('manual',event)">
+          <span class="ico">🔍</span>
+          <span class="lbl">Ручное</span>
+        </div>
+        <div class="type-card dark" id="card-auto" onclick="setTestType('auto',event)">
+          <span class="ico">🦾</span>
+          <span class="lbl">Автоматизированное</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 6: Automation transition ─── -->
+  <div class="slide" id="s6">
+    <div class="coords" style="right:23%;top:43%;">55.1927° N<br>30.2064° E</div>
+    <h2 class="big">Автоматизация</h2>
+  </div>
+
+  <!-- ─── SLIDE 7: Custom map animation ─── -->
+  <div class="slide" id="s7">
+    <div class="map-box" style="width:94%;height:90%;margin-top:0;">
+      <div id="s7-map"></div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 8: AI Tools ─── -->
+  <div class="slide" id="s8">
+    <div class="two-col">
+      <div class="tool-list">
+        <div class="tool-item" data-step="0">
+          <div class="ai-ico"><img src="images/chat_gpt.png" alt="ChatGPT"></div> Chat GPT
+        </div>
+        <div class="tool-item" data-step="1">
+          <div class="ai-ico"><img src="images/claude.png" alt="Claude"></div> Claude
+        </div>
+        <div class="tool-item" data-step="2">
+          <div class="ai-ico"><img src="images/gemini.png" alt="Gemini"></div> Gemini
+        </div>
+        <div class="tool-item" data-step="3">
+          <div class="ai-ico"><img src="images/deepseek.png" alt="Deepseek"></div> deepseek
+        </div>
+        <div class="tool-item" data-step="4">
+          <div class="ai-ico"><img src="images/grok.png" alt="Grok"></div> Grok
+        </div>
+      </div>
+      <div class="tool-list">
+        <div class="tool-item" data-step="5">
+          <div class="ai-ico double">
+            <img src="images/vs_code.png" alt="VS Code">
+            <img src="images/copilot.png" alt="Copilot">
+          </div><span>VS Code + Copilot</span>
+        </div>
+        <div class="tool-item" data-step="6">
+          <div class="ai-ico"><img src="images/cursor.png" alt="Cursor"></div> Cursor
+        </div>
+        <div class="tool-item" data-step="7">
+          <div class="ai-ico"><img src="images/claude.png" alt="Claude Code"></div> Claude Code
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 9: Code screenshot ─── -->
+  <div class="slide" id="s9" style="padding:32px;">
+    <img src="images/curssor_page_screen.png" alt="Cursor IDE"
+         style="width:100%;height:100%;object-fit:contain;border-radius:16px;
+                filter:drop-shadow(0 8px 32px rgba(0,0,0,0.6));">
+  </div>
+
+  <!-- ─── SLIDE 10: Advice ─── -->
+  <div class="slide" id="s10">
+    <div class="advice-wrap">
+      <div data-step="0">
+        <div class="advice-h">Не бойтесь начинать</div>
+        <div class="advice-p">Не бойтесь казаться глупыми. Жить самым умным в комнате — скучно. Никогда не поздно.</div>
+      </div>
+      <div data-step="1">
+        <div class="advice-h">Наберитесь терпения</div>
+        <div class="advice-p">Лучший путь не бывает коротким. Результат приходит со временем.</div>
+      </div>
+      <div data-step="2">
+        <div class="advice-h">Цените малые шаги</div>
+        <div class="advice-p">Каждое маленькое достижение — это победа. Не сравнивайте себя с другими. Сравнивайте с собой вчерашним.</div>
+      </div>
+      <div data-step="3">
+        <div class="advice-h">Учите английский</div>
+        <div class="advice-p">Мир готов открыть вам двери. Но мир говорит на английском.</div>
+      </div>
+      <div data-step="4">
+        <div class="advice-h">Влюбляйтесь в дело</div>
+        <div class="advice-p">Найдите то, что вас зажигает. И просто делайте.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 11: Thank you ─── -->
+  <div class="slide" id="s11">
+    <h2 class="thanks">Спасибо за внимание</h2>
+    <img src="images/qr_code_telegram.png" alt="QR @POGODA_AN"
+         style="height:62%;max-height:420px;object-fit:contain;
+                filter:drop-shadow(0 8px 32px rgba(0,0,0,0.5));border-radius:20px;">
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Progress & hint -->
+<div id="nav"></div>
+<div id="hint">← → или клик</div>
+
+<script src="config.js"></script>
+<script>
+const MAPBOX_TOKEN = window.MAPBOX_TOKEN || '';
+if (MAPBOX_TOKEN) mapboxgl.accessToken = MAPBOX_TOKEN;
+
+// Координаты из твоих ссылок
+const MAP_START  = { lng: 13.40957,  lat: 52.51868,   zoom: 14.35, bearing: 30.1, pitch: 70 };
+const MAP_END    = { lng: 13.407936, lat: 52.519664,  zoom: 15.28, bearing: 30.1, pitch: 70 };
+
+const LIGHT_PRESETS = [
+  { id: 'day',   label: 'day' },
+  { id: 'dusk',  label: 'dusk' },
+  { id: 'night', label: 'night' },
+  { id: 'dawn',  label: 'dawn' },
+];
+let lightIdx = 0;
+let lvMap = null;
+let mapReady = false;
+let animTimers = [];
+
+function clearAnimTimers() {
+  animTimers.forEach(t => clearTimeout(t));
+  animTimers = [];
+}
+
+function initMap() {
+  if (!MAPBOX_TOKEN || MAPBOX_TOKEN === 'YOUR_MAPBOX_TOKEN') {
+    document.getElementById('lv-map').innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:rgba(255,255,255,0.5);font-family:Inter,sans-serif;">' +
+      '<div style="font-size:32px;">🗺️</div>' +
+      '<div style="font-size:14px;">Добавь Mapbox token в index.html</div>' +
+      '<div style="font-size:11px;color:rgba(255,255,255,0.3);">const MAPBOX_TOKEN = \'pk.xxx...\'</div>' +
+      '<a href="https://account.mapbox.com/auth/signup/" target="_blank" style="color:#89b4fa;font-size:12px;">→ mapbox.com (бесплатно)</a>' +
+      '</div>';
+    return;
+  }
+
+  // Карта уже создана — просто перезапускаем анимацию
+  if (lvMap && mapReady) {
+    playAnimation();
+    return;
+  }
+
+  // Первый заход — создаём карту один раз
+  if (!lvMap) {
+    lvMap = new mapboxgl.Map({
+      container: 'lv-map',
+      style: 'mapbox://styles/mapbox/standard',
+      center: [MAP_START.lng, MAP_START.lat],
+      zoom: MAP_START.zoom,
+      pitch: MAP_START.pitch,
+      bearing: MAP_START.bearing,
+      antialias: true,
+      interactive: true,
+    });
+    lvMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+    lvMap.on('style.load', () => {
+      mapReady = true;
+      playAnimation();
+    });
+  }
+}
+
+function playAnimation() {
+  clearAnimTimers();
+
+  // Сбрасываем в стартовую позицию мгновенно
+  lvMap.jumpTo({
+    center: [MAP_START.lng, MAP_START.lat],
+    zoom: MAP_START.zoom,
+    pitch: MAP_START.pitch,
+    bearing: MAP_START.bearing,
+  });
+
+  // Сбрасываем свет на day
+  lightIdx = 0;
+  lvMap.setConfigProperty('basemap', 'lightPreset', 'day');
+  updateLightUI(0);
+
+  // Влёт к конечной точке
+  animTimers.push(setTimeout(() => {
+    lvMap.flyTo({
+      center: [MAP_END.lng, MAP_END.lat],
+      zoom: MAP_END.zoom,
+      pitch: MAP_END.pitch,
+      bearing: MAP_END.bearing,
+      duration: 4500,
+      easing: t => 1 - Math.pow(1 - t, 3),
+      essential: true,
+    });
+  }, 400));
+
+  // Смена освещения day → dusk → night
+  animTimers.push(setTimeout(() => transitionToLight(1), 5500));   // dusk
+  animTimers.push(setTimeout(() => transitionToLight(2), 8200));   // night
+}
+
+function transitionToLight(idx) {
+  if (!mapReady || !lvMap) return;
+  lightIdx = idx;
+  lvMap.setConfigProperty('basemap', 'lightPreset', LIGHT_PRESETS[idx].id);
+  updateLightUI(idx);
+}
+
+function updateLightUI(idx) {
+  const p = LIGHT_PRESETS[idx];
+  const lbl = document.getElementById('light-label');
+  const link = document.getElementById('open-map-link');
+  if (lbl) lbl.textContent = p.label;
+  const center = lvMap ? lvMap.getCenter() : { lng: MAP_END.lng, lat: MAP_END.lat };
+  const z  = lvMap ? lvMap.getZoom().toFixed(2)    : MAP_END.zoom;
+  const b  = lvMap ? lvMap.getBearing().toFixed(1) : MAP_END.bearing;
+  const pt = lvMap ? lvMap.getPitch().toFixed(1)   : MAP_END.pitch;
+  if (link) link.href = `https://labs.mapbox.com/standard-style/?lightPreset=${p.id}#${z}/${center.lat.toFixed(6)}/${center.lng.toFixed(6)}/${b}/${pt}`;
+}
+
+// ── Slide 7 map ──
+const S7_STYLE = 'mapbox://styles/an-pogoda/cmndhxi87001q01sg1e920fzr';
+const S7_WAYPOINTS = [
+  { zoom: 14.41, lat: 52.50938,  lng: 13.36549,  bearing: -132.3, pitch:  4 },
+  { zoom: 16.16, lat: 52.509218, lng: 13.368635, bearing: -132.3, pitch:  4 },
+  { zoom: 16.16, lat: 52.509218, lng: 13.368635, bearing: -137.9, pitch: 58 },
+  { zoom: 16.49, lat: 52.508737, lng: 13.365286, bearing: -137.9, pitch: 58 },
+];
+const S7_DURATIONS = [4500, 2500, 2500];
+
+let s7Map = null, s7MapReady = false, s7Playing = false, s7AnimTimers = [];
+
+function clearS7Timers() {
+  s7Playing = false;
+  s7AnimTimers.forEach(clearTimeout);
+  s7AnimTimers = [];
+}
+
+function initS7Map() {
+  if (!MAPBOX_TOKEN) return;
+  if (s7Map && s7MapReady) { playS7Animation(); return; }
+  if (!s7Map) {
+    const wp = S7_WAYPOINTS[0];
+    s7Map = new mapboxgl.Map({
+      container: 's7-map',
+      style: S7_STYLE,
+      center: [wp.lng, wp.lat], zoom: wp.zoom,
+      bearing: wp.bearing, pitch: wp.pitch,
+      antialias: true, interactive: true,
+    });
+    s7Map.on('style.load', () => { s7MapReady = true; playS7Animation(); });
+  }
+}
+
+function playS7Animation() {
+  clearS7Timers();
+  s7Playing = true;
+  const wp0 = S7_WAYPOINTS[0];
+  s7Map.jumpTo({ center: [wp0.lng, wp0.lat], zoom: wp0.zoom, bearing: wp0.bearing, pitch: wp0.pitch });
+
+  let step = 1;
+  function next() {
+    if (!s7Playing || step >= S7_WAYPOINTS.length) return;
+    const wp  = S7_WAYPOINTS[step];
+    const dur = S7_DURATIONS[step - 1];
+    step++;
+    s7Map.flyTo({
+      center: [wp.lng, wp.lat], zoom: wp.zoom, bearing: wp.bearing, pitch: wp.pitch,
+      duration: dur, essential: true,
+      easing: t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t,
+    });
+    if (step < S7_WAYPOINTS.length) {
+      s7Map.once('moveend', () => { if (s7Playing) s7AnimTimers.push(setTimeout(next, 200)); });
+    }
+  }
+  s7AnimTimers.push(setTimeout(next, 400));
+}
+
+// ── Cursor ──
+const cur = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+
+// ── Slide engine ──
+const slides = [...document.querySelectorAll('.slide')];
+const N = slides.length;
+let cur_slide = 0;
+let cur_step  = -1;
+
+// Build nav dots
+const nav = document.getElementById('nav');
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  nav.appendChild(d);
+});
+const dots = [...nav.querySelectorAll('.dot')];
+
+function steps(slideEl) {
+  return [...slideEl.querySelectorAll('[data-step]')]
+    .sort((a,b) => +a.dataset.step - +b.dataset.step);
+}
+
+function revealStep(slideEl, stepIdx) {
+  const items = steps(slideEl);
+  items.forEach(el => {
+    if (+el.dataset.step <= stepIdx) el.classList.add('show');
+  });
+}
+
+function resetSteps(slideEl) {
+  steps(slideEl).forEach(el => el.classList.remove('show'));
+}
+
+function goTo(idx) {
+  // exit current
+  slides[cur_slide].classList.remove('active');
+  slides[cur_slide].classList.add('exit');
+  const leaving = cur_slide;
+  setTimeout(() => slides[leaving].classList.remove('exit'), 400);
+
+  cur_slide = idx;
+  cur_step = -1;
+  resetSteps(slides[cur_slide]);
+  slides[cur_slide].classList.add('active');
+
+  dots.forEach((d,i) => d.classList.toggle('on', i === cur_slide));
+
+  // Subtitle на слайде 1: перезапускаем анимацию каждый раз
+  if (cur_slide === 0) {
+    const sub = document.querySelector('#s1 .subtitle');
+    sub.classList.remove('subtitle-play');
+    void sub.offsetWidth; // reflow чтобы сбросить анимацию
+    sub.classList.add('subtitle-play');
+  }
+
+  // Слайд 3 — Berlin map
+  if (cur_slide === 2) setTimeout(initMap, 100);
+  else clearAnimTimers();
+
+  // Слайд 7 — custom map animation
+  if (cur_slide === 6) setTimeout(initS7Map, 100);
+  else clearS7Timers();
+
+  // Баги: сбрасываем при заходе на слайд 4
+  if (cur_slide === 3) resetBugSlide();
+
+  // auto-show first step
+  tick();
+}
+
+function tick() {
+  const slideEl = slides[cur_slide];
+  const items = steps(slideEl);
+  if (items.length === 0) return;
+  cur_step++;
+  if (cur_step < items.length) revealStep(slideEl, cur_step);
+}
+
+function next() {
+  const slideEl = slides[cur_slide];
+  const items = steps(slideEl);
+  if (cur_step < items.length - 1) { tick(); return; }
+  if (cur_slide < N - 1) goTo(cur_slide + 1);
+}
+
+function prev() {
+  if (cur_slide > 0) goTo(cur_slide - 1);
+}
+
+// ── Testing type toggle (slide 5) ──
+function setTestType(type, e) {
+  e && e.stopPropagation();
+  const isManual = type === 'manual';
+  document.getElementById('card-manual').classList.toggle('dark', !isManual);
+  document.getElementById('card-auto').classList.toggle('dark', isManual);
+  document.getElementById('test-img-manual').classList.toggle('active', isManual);
+  document.getElementById('test-img-automated').classList.toggle('active', !isManual);
+}
+
+// ── Bug images switcher (slide 4) ──
+let bugIdx = 0;
+const bugPositions = ['pos-0', 'pos-1', 'pos-2'];
+
+function nextBugImage(e) {
+  e && e.stopPropagation();
+  bugIdx = (bugIdx + 1) % 3;
+
+  // Переключаем картинку
+  const imgs  = document.querySelectorAll('.bug-img');
+  const dots  = document.querySelectorAll('.bug-dot');
+  imgs.forEach((img, i) => img.classList.toggle('active', i === bugIdx));
+  dots.forEach((dot, i) => dot.classList.toggle('on',     i === bugIdx));
+
+  // Перемещаем жука
+  const mascot = document.getElementById('bug-mascot');
+  mascot.classList.remove(...bugPositions);
+  mascot.classList.add(bugPositions[bugIdx]);
+}
+
+// Сбрасываем жука при входе на слайд 4
+function resetBugSlide() {
+  bugIdx = 0;
+  document.querySelectorAll('.bug-img').forEach((img, i) => img.classList.toggle('active', i === 0));
+  document.querySelectorAll('.bug-dot').forEach((dot, i) => dot.classList.toggle('on',     i === 0));
+  const mascot = document.getElementById('bug-mascot');
+  if (mascot) { mascot.classList.remove(...bugPositions); mascot.classList.add('pos-0'); }
+}
+
+// init
+goTo(0);
+
+// events
+document.addEventListener('keydown', e => {
+  if (['ArrowRight','ArrowDown',' '].includes(e.key)) { e.preventDefault(); next(); }
+  if (['ArrowLeft','ArrowUp'].includes(e.key)) { e.preventDefault(); prev(); }
+});
+document.addEventListener('click', next);
+
+// touch swipe
+let tx = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, {passive:true});
+document.addEventListener('touchend',   e => {
+  const dx = e.changedTouches[0].clientX - tx;
+  if (dx < -40) next();
+  else if (dx > 40) prev();
+}, {passive:true});
+</script>
+</body>
+</html>

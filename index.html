@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Тестирование — или как AI помог мне делать то, чего я не умела</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.35.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.35.0/mapbox-gl.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -723,6 +723,7 @@ function initMap() {
     lvMap = new mapboxgl.Map({
       container: 'lv-map',
       style: 'mapbox://styles/mapbox/standard',
+      config: { basemap: { showLandmarkIcons: true, showLandmarkIconLabels: true } },
       center: [MAP_START.lng, MAP_START.lat],
       zoom: MAP_START.zoom,
       pitch: MAP_START.pitch,

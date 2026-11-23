@@ -54,6 +54,40 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #050507; c
 .slide.active .in.d3 { animation-delay: .24s; } .slide.active .in.d4 { animation-delay: .32s; }
 .slide.active .in.d5 { animation-delay: .40s; } .slide.active .in.d6 { animation-delay: .48s; }
 
+/* two-beat slides: first click reveals the next block */
+:root { --ease: cubic-bezier(.65,0,.25,1); }
+/* slide 2 — fixed-width content, no text reflow while animating */
+#s-before .qa { position: absolute; top: 340px; height: 480px; padding: 52px; gap: 24px; }
+#s-before .qa .cbody { font-size: 28px; width: 716px; }
+#s-before .qa-a { left: 120px; width: 1680px; transition: width 1.1s var(--ease); }
+#s-before.step .qa-a { width: 820px; }
+#s-before .qa-b { left: 980px; width: 820px; opacity: 0; transform: translateX(860px); transition: opacity .5s ease, transform 1.1s var(--ease); }
+#s-before.step .qa-b { opacity: 1; transform: none; }
+/* slide 3 */
+#s-now .bar3 { position: absolute; left: 120px; top: 440px; height: 200px; display: flex; }
+#s-now .seg { height: 200px; width: 702px; flex: none; overflow: hidden; transition: width 1s var(--ease), border-radius 1s var(--ease); }
+#s-now .seg > div { width: 560px; height: 100%; padding: 36px; display: flex; flex-direction: column; justify-content: space-between; }
+#s-now .seg .k { font: 500 18px/1 var(--M); letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+#s-now .seg .t { font: 500 34px/1.2 var(--H); }
+#s-now .s1 { background: var(--lime); color: var(--ink); border-radius: 24px 0 0 24px; }
+#s-now .s2 { background: var(--violet); color: var(--ink); border-radius: 0 24px 24px 0; }
+#s-now .s3 { width: 0; background: var(--surf2); border-radius: 0 24px 24px 0; }
+#s-now.step .s1, #s-now.step .s2, #s-now.step .s3 { width: 560px; }
+#s-now.step .s2 { border-radius: 0; }
+#s-now .lbl-b { display: none; } #s-now.step .lbl-a { display: none; } #s-now.step .lbl-b { display: inline; }
+#s-now .bline { position: absolute; top: 410px; height: 260px; }
+#s-now .blbl { position: absolute; top: 694px; font: 500 20px/1 var(--M); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+#s-now .old { left: 821px; width: 0; border-left: 3px dashed var(--muted); transition: left 1s var(--ease); }
+#s-now .old-lbl { left: 838px; color: var(--muted); transition: left 1s var(--ease), opacity .5s ease; }
+#s-now.step .old { left: 679px; }
+#s-now.step .old-lbl { left: 696px; opacity: 0; }
+#s-now .new { left: 1238px; width: 4px; background: var(--lime); border-radius: 2px; transform: scaleY(0); transform-origin: top; transition: transform .7s var(--ease) .7s; }
+#s-now .new-lbl { left: 1258px; color: var(--lime); opacity: 0; transition: opacity .6s ease 1.1s; }
+#s-now .now-foot { opacity: 0; transform: translateY(16px); transition: opacity .7s ease 1.3s, transform .7s var(--ease) 1.3s; }
+#s-now.step .new { transform: none; }
+#s-now.step .new-lbl { opacity: 1; }
+#s-now.step .now-foot { opacity: 1; transform: none; }
+
 /* pixel art */
 .pixel { display: grid; gap: 3px; }
 .pixel i { display: block; }
@@ -118,48 +152,43 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #050507; c
 </section>
 
 <!-- ═════════ 02 · Раньше ═════════ -->
-<section class="slide" data-sec="01 · Как менялась работа QA">
+<section class="slide" id="s-before" data-steps="1" data-sec="01 · Как менялась работа QA">
   <div class="glow" style="left:1300px;top:650px;width:900px;height:900px;background:rgba(158,140,255,.14);filter:blur(150px)"></div>
   <div class="a h1 in" style="left:120px;top:180px">Раньше: два вида QA</div>
-  <div class="a row" style="left:120px;top:340px;width:1680px;height:480px;gap:40px">
-    <div class="card grow in d1" style="padding:52px;gap:24px">
+  <div class="a in d1" style="inset:0">
+    <div class="card qa qa-a">
       <span class="pill" style="background:var(--lime)">Manual QA</span>
       <div class="h3">Человек + тест-план</div>
-      <div class="cbody" style="font-size:28px">Открывает 3D-модель, проходит по тест-плану и фиксирует ошибки.</div>
+      <div class="cbody">Открывает 3D-модель, проходит по тест-плану и фиксирует ошибки.</div>
       <div class="grow"></div>
       <div class="chips lime"><span class="chip">геометрия</span><span class="chip">текстуры</span><span class="chip">расположение</span><span class="chip">пересечения</span></div>
     </div>
-    <div class="card grow in d2" style="padding:52px;gap:24px">
-      <span class="pill" style="background:var(--violet)">Automated QA</span>
-      <div class="h3">Скрипты + правила</div>
-      <div class="cbody" style="font-size:28px">Инженер пишет скрипты, которые проверяют формализуемые требования.</div>
-      <div class="grow"></div>
-      <div class="chips violet"><span class="chip">есть ли дверь?</span><span class="chip">цвет в палитре?</span><span class="chip">атрибуты верны?</span></div>
-    </div>
   </div>
-  <div class="a in d3" style="left:120px;top:900px;font:500 40px/1.2 var(--H);letter-spacing:-.01em">Чёткие правила → <span class="lime">скрипт</span>.&nbsp;&nbsp; Интерпретация → <span class="coral">человек</span>.</div>
+  <div class="card qa qa-b">
+    <span class="pill" style="background:var(--violet)">Automated QA</span>
+    <div class="h3">Скрипты + правила</div>
+    <div class="cbody">Инженер пишет скрипты, которые проверяют формализуемые требования.</div>
+    <div class="grow"></div>
+    <div class="chips violet"><span class="chip">есть ли дверь?</span><span class="chip">цвет в палитре?</span><span class="chip">атрибуты верны?</span></div>
+  </div>
 </section>
 
 <!-- ═════════ 03 · Сейчас ═════════ -->
-<section class="slide" data-sec="01 · Как менялась работа QA">
+<section class="slide" id="s-now" data-steps="1" data-sec="01 · Как менялась работа QA">
   <div class="glow" style="left:1150px;top:-350px;width:1000px;height:1000px;background:rgba(209,255,61,.10);filter:blur(170px)"></div>
   <div class="a h1 in" style="left:120px;top:170px">Сейчас: <span class="lime">AI</span> сдвигает<br>границу автоматизации</div>
-  <div class="a row in d1" style="left:120px;top:470px;width:1680px;height:190px">
-    <div class="col" style="width:560px;padding:36px;gap:10px;background:var(--lime);color:var(--ink);border-radius:24px 0 0 24px">
-      <div class="mono" style="font-size:18px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;opacity:.75">скрипты</div>
-      <div style="font:500 32px/1.2 var(--H)">Чёткие правила</div></div>
-    <div class="col" style="width:560px;padding:36px;gap:10px;background:var(--violet);color:var(--ink)">
-      <div class="mono" style="font-size:18px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;opacity:.75">было: человек → стало: AI</div>
-      <div style="font:500 32px/1.2 var(--H)">Анализ и<br>интерпретация</div></div>
-    <div class="col" style="width:560px;padding:36px;gap:10px;background:var(--surf2);border-radius:0 24px 24px 0">
-      <div class="mono" style="font-size:18px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;opacity:.75">человек</div>
-      <div style="font:500 32px/1.2 var(--H)">Неоднозначные<br>решения</div></div>
+  <div class="a in d1" style="inset:0">
+    <div class="bar3">
+      <div class="seg s1"><div><span class="k">скрипты</span><span class="t">Чёткие<br>правила</span></div></div>
+      <div class="seg s2"><div><span class="k"><span class="lbl-a">человек</span><span class="lbl-b">AI</span></span><span class="t">Анализ и<br>интерпретация</span></div></div>
+      <div class="seg s3"><div><span class="k">человек</span><span class="t">Неоднозначные<br>решения</span></div></div>
+    </div>
+    <div class="bline old"></div>
+    <div class="blbl old-lbl">граница раньше</div>
   </div>
-  <div class="a in d2" style="left:679px;top:430px;width:0;height:270px;border-left:3px dashed var(--muted)"></div>
-  <div class="a in d3" style="left:1238px;top:425px;width:5px;height:280px;background:var(--lime)"></div>
-  <div class="a mono muted in d2" style="left:700px;top:710px;font-size:20px;letter-spacing:.04em;text-transform:uppercase">граница раньше</div>
-  <div class="a mono lime in d3" style="left:1262px;top:710px;font-size:20px;font-weight:500;letter-spacing:.04em;text-transform:uppercase">граница сейчас →</div>
-  <div class="a in d4" style="left:120px;top:830px;width:1680px;font:500 42px/1.35 var(--H)">Не просто «AI ускоряет работу».<br>AI <span class="lime">расширяет</span> область задач, которые можно автоматизировать.</div>
+  <div class="bline new"></div>
+  <div class="blbl new-lbl">граница сейчас →</div>
+  <div class="a now-foot" style="left:120px;top:800px;width:1680px;font:500 38px/1.4 var(--H);white-space:nowrap">Не просто «AI ускоряет работу».<br>AI <span class="lime">расширяет</span> область задач, которые можно автоматизировать.</div>
 </section>
 
 <!-- ═════════ 04 · Пример: подписи (Paris map) ═════════ -->
@@ -180,7 +209,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #050507; c
     <div class="field"><div class="k">name_short <span class="chip violet">интерпретация</span></div><div class="v">Короткое название для карты</div><div class="val" data-val="Tour Eiffel"></div></div>
     <div class="field"><div class="k">wikipedia <span class="chip lime">код + API</span></div><div class="v">Ссылка на Wikipedia</div><div class="val" data-val="fr.wikipedia.org/wiki/Tour_Eiffel"></div></div>
   </div>
-  <div class="a in d3" style="left:120px;top:955px;font-size:26px;line-height:1.4;color:var(--muted)">Часть задач решают код и API. Но выбрать корректное название, перевод и короткую форму — уже <span class="violet">задача на интерпретацию</span>.</div>
 </section>
 
 <!-- ═════════ 05 · Три этапа ═════════ -->
@@ -216,7 +244,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #050507; c
       <div style="font:500 24px/1.3 var(--B)">Человек разбирает только спорные случаи</div>
     </div>
   </div>
-  <div class="a in d4" style="left:120px;top:950px;font-size:30px;color:var(--muted)">Цель — процесс, где человек подключается в основном к неоднозначным случаям.</div>
 </section>
 
 <!-- ═════════ 06 · Несколько моделей ═════════ -->
@@ -234,10 +261,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #050507; c
       <div class="card grow" style="padding:28px;gap:6px;border-radius:22px;border-color:var(--lime);justify-content:center"><div style="font:600 26px var(--B)">Надёжный вывод</div><div class="mono lime" style="font-size:22px;font-weight:500">→ результат</div></div>
       <div class="card grow" style="padding:28px;gap:6px;border-radius:22px;border-color:var(--coral);justify-content:center"><div style="font:600 26px var(--B)">Нет надёжного вывода</div><div class="mono coral" style="font-size:22px;font-weight:500">→ человеку</div></div>
     </div>
-  </div>
-  <div class="a row in d5" style="left:120px;top:800px;width:1680px;padding:40px;gap:28px;align-items:center;border-radius:28px;border:1px solid var(--coral);background:rgba(255,115,97,.06)">
-    <div class="px coral" style="font-size:48px">!</div>
-    <div style="font:500 30px/1.4 var(--B)">Модели могут согласиться друг с другом — и всё равно ошибиться. Поэтому нужны критерии качества и независимая проверка.</div>
   </div>
 </section>
 
@@ -282,18 +305,23 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #050507; c
 <!-- ═════════ 09 · Исследование ═════════ -->
 <section class="slide" data-sec="03 · Следующий шаг">
   <div class="glow" style="left:-400px;top:500px;width:1000px;height:1000px;background:rgba(158,140,255,.18);filter:blur(170px)"></div>
-  <div class="a col in" style="left:120px;top:170px;width:620px;gap:36px">
-    <div style="font:700 56px/1.15 var(--H);letter-spacing:-.02em">Это исследование,<br>а не готовое решение</div>
-    <div style="font-size:28px;line-height:1.45;color:var(--muted)">Задача: научить систему проверять 3D-модель не только по структурированным данным, но и по её визуальному представлению.</div>
+  <div class="a in" style="left:120px;top:170px;font:700 60px/1.15 var(--H);letter-spacing:-.02em;white-space:nowrap">Это исследование, а не готовое решение</div>
+  <div class="a row" style="left:120px;top:330px;width:1680px;height:470px;gap:40px;align-items:center">
+    <div class="card grow in d1" style="height:470px;padding:52px;gap:24px">
+      <div class="row" style="justify-content:space-between;align-items:center"><span class="pill" style="background:var(--lime)">уже умеем</span><span class="px lime" style="font-size:40px">✓</span></div>
+      <div class="grow"></div>
+      <div style="font:700 56px/1.1 var(--H);letter-spacing:-.02em">Данные</div>
+      <div class="chips lime"><span class="chip">атрибуты</span><span class="chip">названия</span><span class="chip">ссылки</span></div>
+    </div>
+    <div class="mono lime in d2" style="font-size:56px">→</div>
+    <div class="card grow in d3" style="height:470px;padding:52px;gap:24px;border:2px solid var(--violet)">
+      <div class="row" style="justify-content:space-between;align-items:center"><span class="pill" style="background:var(--violet)">исследуем</span><span class="px violet" style="font-size:40px">?</span></div>
+      <div class="grow"></div>
+      <div style="font:700 56px/1.1 var(--H);letter-spacing:-.02em">Изображение</div>
+      <div class="chips violet"><span class="chip">ракурсы</span><span class="chip">цвет</span><span class="chip">геометрия</span></div>
+    </div>
   </div>
-  <div class="a col" style="left:840px;top:170px;width:960px;border-top:1px solid var(--line)">
-    <div class="row in d1" style="gap:32px;padding:26px 0;align-items:center;border-bottom:1px solid var(--line)"><span class="lime" style="font:700 28px var(--H)">01</span><span style="font:500 30px/1.3 var(--B)">Какие изображения и ракурсы передавать модели?</span></div>
-    <div class="row in d2" style="gap:32px;padding:26px 0;align-items:center;border-bottom:1px solid var(--line)"><span class="lime" style="font:700 28px var(--H)">02</span><span style="font:500 30px/1.3 var(--B)">Какие требования она действительно способна проверить?</span></div>
-    <div class="row in d3" style="gap:32px;padding:26px 0;align-items:center;border-bottom:1px solid var(--line)"><span class="lime" style="font:700 28px var(--H)">03</span><span style="font:500 30px/1.3 var(--B)">Насколько надёжно она сопоставляет изображение с описанием?</span></div>
-    <div class="row in d4" style="gap:32px;padding:26px 0;align-items:center;border-bottom:1px solid var(--line)"><span class="lime" style="font:700 28px var(--H)">04</span><span style="font:500 30px/1.3 var(--B)">Какие ошибки она замечает, а какие пропускает?</span></div>
-    <div class="row in d5" style="gap:32px;padding:26px 0;align-items:center;border-bottom:1px solid var(--line)"><span class="lime" style="font:700 28px var(--H)">05</span><span style="font:500 30px/1.3 var(--B)">Что доверить AI, а что оставить алгоритмам или человеку?</span></div>
-  </div>
-  <div class="a in d6" style="left:120px;top:920px;width:1680px;font:500 34px/1.35 var(--H)">Это уже не использование AI-инструмента, а <span class="lime">проектирование системы контроля качества</span>.</div>
+  <div class="a in d4" style="left:120px;top:870px;width:1680px;font:500 34px/1.35 var(--H)">Это уже не использование AI-инструмента, а <span class="lime">проектирование системы контроля качества</span>.</div>
 </section>
 
 <!-- ═════════ 10 · Навыки ═════════ -->
@@ -320,19 +348,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #050507; c
     <div class="card row in d2" style="flex-direction:row;height:176px;padding:44px;gap:40px;align-items:center;border-radius:24px"><div class="col" style="width:560px;flex:none;gap:8px"><div class="mono muted" style="font-size:20px;letter-spacing:.06em;text-transform:uppercase">Не просто</div><div class="muted" style="font-size:34px;text-decoration:line-through">получать результат</div></div><div class="mono lime" style="font-size:48px">→</div><div style="font:500 36px/1.25 var(--H)">Уметь определить, хороший он или плохой</div></div>
     <div class="card row in d3" style="flex-direction:row;height:176px;padding:44px;gap:40px;align-items:center;border-radius:24px"><div class="col" style="width:560px;flex:none;gap:8px"><div class="mono muted" style="font-size:20px;letter-spacing:.06em;text-transform:uppercase">Не просто</div><div class="muted" style="font-size:34px;text-decoration:line-through">выполнять отдельные действия</div></div><div class="mono lime" style="font-size:48px">→</div><div style="font:500 36px/1.25 var(--H)">Видеть весь процесс и понимать, как его улучшить</div></div>
   </div>
-</section>
-
-<!-- ═════════ 12 · Попробуйте сами ═════════ -->
-<section class="slide" data-sec="05 · Попробуйте сами">
-  <div class="glow" style="left:-350px;top:-350px;width:1000px;height:1000px;background:rgba(209,255,61,.09);filter:blur(170px)"></div>
-  <div class="glow" style="left:1300px;top:650px;width:900px;height:900px;background:rgba(158,140,255,.15);filter:blur(150px)"></div>
-  <div class="a h2 in" style="left:120px;top:170px">Что вы уже можете<br>попробовать сами</div>
-  <div class="a row" style="left:120px;top:400px;width:1680px;height:480px;gap:32px">
-    <div class="card grow in d1" style="gap:22px"><div class="px muted" style="font-size:24px">LVL 1</div><div class="ctitle" style="font-size:38px">AI-ассистент</div><div class="cbody" style="font-size:27px;line-height:1.45">Попросите его написать небольшой скрипт, объяснить код, найти ошибку или сделать простую веб-страницу.</div><div class="grow"></div><div class="chips muted" style="gap:10px"><span class="chip">скрипт</span><span class="chip">объяснить код</span><span class="chip">найти баг</span><span class="chip">веб-страница</span></div></div>
-    <div class="card grow in d2" style="gap:22px"><div class="px violet" style="font-size:24px">LVL 2</div><div class="ctitle" style="font-size:38px">Свой проект</div><div class="cbody" style="font-size:27px;line-height:1.45">Установите VS Code, подключите AI coding assistant и сделайте вместе с ним сайт, игру или инструмент.</div><div class="grow"></div><div class="chips violet" style="gap:10px"><span class="chip">сайт</span><span class="chip">игра</span><span class="chip">инструмент</span></div></div>
-    <div class="card grow in d3" style="gap:22px;border-color:var(--lime)"><div class="px lime" style="font-size:24px">LVL 3</div><div class="ctitle" style="font-size:38px">Проверка AI</div><div class="cbody" style="font-size:27px;line-height:1.45">Дайте задачу одной модели, попросите другую найти ошибки — а потом проверьте обе сами.</div><div class="grow"></div><div class="chips lime" style="gap:10px"><span class="chip">генерация</span><span class="chip">валидация</span><span class="chip">ваш вердикт</span></div></div>
-  </div>
-  <div class="a in d4" style="left:120px;top:950px;font:500 40px/1.2 var(--H);letter-spacing:-.01em">Не только генерировать, но и <span class="lime">проверять</span>.</div>
 </section>
 
 <!-- ═════════ 13 · Умер QA ═════════ -->
@@ -529,7 +544,8 @@ slides.forEach((s, i) => {
   s.insertAdjacentHTML('afterbegin',
     `<div class="a sec">${s.dataset.sec || ''}</div><div class="a num">${String(i + 1).padStart(2, '0')} / ${N}</div><div class="a rule"></div>`);
 });
-let cur = -1;
+let cur = -1, step = 0;
+function maxStep(s) { return +(s && s.dataset.steps || 0); }
 function onEnter(s) {
   s.querySelectorAll('.bar > i').forEach(b => b.style.width = b.dataset.w);
   if (s.id === 's-paris') playParis();
@@ -545,7 +561,14 @@ function onLeave(s) {
 function go(i) {
   i = Math.max(0, Math.min(N - 1, i));
   if (i === cur) return;
-  if (cur >= 0) { slides[cur].classList.remove('active'); onLeave(slides[cur]); }
+  if (cur >= 0 && i === cur + 1 && step < maxStep(slides[cur])) {
+    step++; slides[cur].classList.add('step'); return;
+  }
+  if (cur >= 0 && i === cur - 1 && step > 0) {
+    step--; slides[cur].classList.toggle('step', step > 0); return;
+  }
+  if (cur >= 0) { slides[cur].classList.remove('active', 'step'); onLeave(slides[cur]); }
+  step = 0;
   cur = i;
   slides[cur].classList.add('active');
   onEnter(slides[cur]);
